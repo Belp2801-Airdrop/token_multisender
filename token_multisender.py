@@ -10,6 +10,7 @@ Created: 09.11.2024
 """
 
 import customtkinter
+from tkinter import messagebox
 import os, time, datetime
 import csv
 
@@ -21,6 +22,7 @@ os.chdir(os.path.dirname(os.path.realpath(__file__)))
 class TabView(customtkinter.CTkTabview):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        self.master = master
 
         self.tabs = ["Type 1: 1 to n", "Type 2: n to 1", "Type 3: n to n"]
         # create 
@@ -94,13 +96,14 @@ class TabView(customtkinter.CTkTabview):
         csv_upload_label.grid(row=1, column=0, padx=5, pady=4, sticky="e")
         csv_upload_entry.grid(row=1, column=1, padx=5, pady=4)
         csv_upload_button.grid(row=1, column=2, padx=5, pady=4)
+
     # endregion
 
     # region utils
     def get_current_tab_index(self):
         return self.index(self.get())
     
-    def handle_get_csv_columns(self, tab, mode):        
+    def handle_get_csv_columns(self, tab, mode):    
         if tab == 0:
             if mode == 1 or mode == 2:
                 return ["to_address"]
@@ -115,8 +118,7 @@ class TabView(customtkinter.CTkTabview):
             if mode == 1 or mode == 2:
                 return ["from_address", "private_key", "to_address"]
             elif mode == 3:
-                return ["from_address", "private_key", "to_address", "amount"]
-                    
+                return ["from_address", "private_key", "to_address", "amount"]                  
                 
     def handle_set_columns_vars(self, mode):
         for i in range(len(self.tabs)):
@@ -124,7 +126,21 @@ class TabView(customtkinter.CTkTabview):
             self.columns_vars[i].set(f"[{', '.join(columns)}]")
         
     def get_sample_file(self):
-        pass
+        current_tab = self.get_current_tab_index()
+        columns = self.handle_get_csv_columns(current_tab, self.master.mode_var.get())
+        filepath = f"acc_type_{current_tab}_{self.master.mode_var.get()}.csv"
+        values = {key: "" for key in columns}
+        
+        with open(filepath, "w", newline="") as f:
+            writer = csv.writer(f)
+
+            writer.writerow(values.keys())
+            writer.writerow(values.values())
+
+        answer = messagebox.askquestion("Success", "Success! Do you want to open sample file?") 
+        if answer == 'yes':
+            os.startfile(filepath)
+
     # endregion
 
 
@@ -143,7 +159,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.build_widgets()
 
         self.tab_view.handle_set_columns_vars(self.mode_var.get())
-    # region 
+    # region init
     def init_constants(self):
         pass
 
@@ -278,6 +294,16 @@ class TokenMultiSender(customtkinter.CTk):
         self.tab_view = TabView(master=self)
         self.tab_view.pack(padx=5, pady=(0, 0), fill="both", expand=True)
 
+        for tab in self.tab_view.tabs:
+            self.build_transfer_button(self.tab_view.tab(tab))
+
+    def build_transfer_button(self, tab):
+        self.transfer_button_frame = customtkinter.CTkFrame(tab)
+        self.transfer_button_frame.place(x=432, y=160)
+        
+        self.transfer_button = customtkinter.CTkButton(self.transfer_button_frame, text="Transfer", command=self.transfer_token)
+        self.transfer_button.pack()
+    
     def build_footers(self):
         self.footers = customtkinter.CTkLabel(self, text="@Powered by: Belp2801")
         self.footers.pack(padx=5, pady=4)
@@ -286,9 +312,14 @@ class TokenMultiSender(customtkinter.CTk):
     # region utils
     def get_current_tab_index(self):
         return self.tab_view.index(self.tab_view.get())
+
+    def handle_check_token_address(self):
+        pass
     # endregion
 
     # region run
+    def transfer_token(self):
+        pass
     # endregion
 
 

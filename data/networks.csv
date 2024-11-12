@@ -1,0 +1,6 @@
+key,name,token,rpc_url,scan_url,chain_id
+eth_main,Ethereum,eth,https://mainnet.infura.io/v3/,https://etherscan.io,1
+polygon,Polygon,matic,https://polygon-rpc.com/,https://polygonscan.com/,137
+taiko,Taiko,eth,https://rpc.mainnet.taiko.xyz,https://taikoscan.io,167000
+sepolia,Sepolia,eth,https://1rpc.io/sepolia,'',11155111  
+base,Base,eth,https://mainnet.base.org,'',8453 

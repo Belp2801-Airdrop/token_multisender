@@ -14,6 +14,9 @@ from tkinter import messagebox
 import os, time, datetime
 import csv
 
+from baseclass import wallet
+from baseclass import network
+
 customtkinter.set_appearance_mode("light")
 customtkinter.set_default_color_theme("blue")
 
@@ -157,6 +160,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.init_ctk_vars()
 
         self.build_widgets()
+        self.handle_get_network()
 
         self.tab_view.handle_set_columns_vars(self.mode_var.get())
     # region init
@@ -167,6 +171,7 @@ class TokenMultiSender(customtkinter.CTk):
         # networks
         self.networks = {}
         self.load_network_data()
+        self.abi = [{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}]  
 
         # token types
         self.token_types = ["TOKEN", "NFT"]
@@ -180,7 +185,7 @@ class TokenMultiSender(customtkinter.CTk):
                 self.networks[line["name"]] = line
 
     def init_ctk_vars(self):
-        self.network_var = customtkinter.StringVar()
+        self.network_var = customtkinter.StringVar(value=sorted(self.networks.keys())[0])
         self.token_type_var = customtkinter.StringVar()
 
         self.mode_var = customtkinter.IntVar()
@@ -188,6 +193,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.value_var = customtkinter.DoubleVar()
 
         self.token_address_var = customtkinter.StringVar()
+        self.unit_var = customtkinter.StringVar()
         self.columns_var = customtkinter.StringVar()
 
     # endregion
@@ -210,6 +216,8 @@ class TokenMultiSender(customtkinter.CTk):
         self.token_type_frame.pack(side=customtkinter.RIGHT)
 
     def build_network_widgets(self):
+        def on_change_network(choice):
+            self.handle_get_network()
         # Network
         self.network_frame = customtkinter.CTkFrame(self.type_frame, corner_radius=5, bg_color="transparent", fg_color="transparent")
         self.network_label = customtkinter.CTkLabel(self.network_frame, width=108, anchor="w", text="Network:")
@@ -219,6 +227,7 @@ class TokenMultiSender(customtkinter.CTk):
             values=sorted(self.networks.keys()),
             fg_color=["#F9F9FA", "#343638"],
             text_color=["#000", "#fff"],
+            command=on_change_network
         )
         self.network_combobox.set(sorted(self.networks.keys())[0])
 
@@ -246,6 +255,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.token_data_frame.pack(padx=5, pady=(5, 0), fill="both", expand=True)
 
         self.build_token_address_widgets()
+        # self.build_unit_widgets()
         self.build_mode_widgets()
 
     def build_mode_widgets(self):
@@ -281,11 +291,15 @@ class TokenMultiSender(customtkinter.CTk):
         self.value_label.grid(row=2, column=2, padx=(32, 5), pady=5, sticky="e")
         self.value_entry.grid(row=2, column=3, padx=(5, 0), pady=5, sticky="w")
 
+    def build_unit_widgets(self):
+        self.unit_label = customtkinter.CTkLabel(self.token_data_frame, text=f"Token: {self.unit_var.get()}")
+        self.unit_label.grid(row=2, column=4, padx=5, pady=5)
+
     def build_token_address_widgets(self):
         # Token address
         self.token_address_label = customtkinter.CTkLabel(self.token_data_frame, width=108, anchor="w",  text="Token address:")
         self.token_address_entry = customtkinter.CTkEntry(self.token_data_frame, textvariable=self.token_address_var, width=360, border_width=0)
-        self.token_address_button = customtkinter.CTkButton(self.token_data_frame, text="Check", width=80)
+        self.token_address_button = customtkinter.CTkButton(self.token_data_frame, text="Check", width=80, command=self.handle_check_token_address)
         self.token_address_label.grid(row=1, column=0, padx=(16, 5), pady=(8, 5), sticky="w")
         self.token_address_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=(8, 5), sticky="w")
         self.token_address_button.grid(row=1, column=4, padx=5, pady=(8, 5), sticky="w")
@@ -310,11 +324,43 @@ class TokenMultiSender(customtkinter.CTk):
     # endregion
     
     # region utils
+    def handle_get_network(self):
+        self.network = network.Network(self.networks, self.network_var.get())
+        self.unit_var.set(self.network.token)
+        
+    def handle_set_unit(self):
+        self.unit_label.configure(text=f"Token: {self.unit_var.get()}")
+
+    def handle_check_token_address(self):
+        self.handle_get_network()
+        self.network.init_w3()
+        address = self.token_address_var.get().strip()
+        if address == "":
+            messagebox.showerror("Error!", "Enter token address and try again!")
+            return
+        try:
+            contract = self.network.w3.eth.contract(address=address, abi=self.abi)
+            _name = contract.functions.name().call()
+            _symbol = contract.functions.symbol().call()
+            self.unit_var.set(_symbol)
+            messagebox.showinfo("Success!", 
+                                "\n".join([
+                                    f"Get token data success:", "",
+                                    f" >> Address: {address}", "",
+                                    f" >> Name   : {_name}", "",
+                                    f" >> Symbol : {_symbol}"
+                                ]))
+        except Exception as e:
+            print(e)
+            if "401" in str(e):
+                messagebox.showerror("RPC Error!", "Check RPC url and try again!")
+            else:
+                messagebox.showerror("Address not found!", "Check token address and try again!")
+            return
+    
     def get_current_tab_index(self):
         return self.tab_view.index(self.tab_view.get())
 
-    def handle_check_token_address(self):
-        pass
     # endregion
 
     # region run

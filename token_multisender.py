@@ -10,6 +10,7 @@ Created: 09.11.2024
 """
 
 import customtkinter
+from customtkinter import filedialog    
 from tkinter import messagebox
 import os, time, datetime
 import csv
@@ -92,9 +93,9 @@ class TabView(customtkinter.CTkTabview):
         csv_sample_button.grid(row=0, column=2, padx=5, pady=4)
         
         csv_upload_label = customtkinter.CTkLabel(tab, width=108, anchor="w", text="File (*): ")
-        csv_upload_entry = customtkinter.CTkEntry(tab, width=360, border_width=0)
+        csv_upload_entry = customtkinter.CTkEntry(tab, width=360, border_width=0, textvariable=self.file_vars[i])
         csv_upload_button = customtkinter.CTkButton(
-            tab, width=80, text="Select"
+            tab, width=80, text="Select", command=self.handle_select_file
         )
         csv_upload_label.grid(row=1, column=0, padx=5, pady=4, sticky="e")
         csv_upload_entry.grid(row=1, column=1, padx=5, pady=4)
@@ -143,6 +144,20 @@ class TabView(customtkinter.CTkTabview):
         answer = messagebox.askquestion("Success", "Success! Do you want to open sample file?") 
         if answer == 'yes':
             os.startfile(filepath)
+
+    def handle_select_file(self):
+        _success = False
+        current_tab = self.get_current_tab_index()
+        while not _success:
+            file_path = filedialog.askopenfilenames()
+            if len(file_path) != 0 and not ".csv" in file_path[0]:
+                messagebox.showerror(
+                    "Wrong file format!", "Please select .csv!"
+                )
+            else:
+                _success = True
+                if len(file_path) != 0:
+                    self.file_vars[current_tab].set(file_path[0])
 
     # endregion
 

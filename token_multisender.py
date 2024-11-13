@@ -112,17 +112,17 @@ class TabView(customtkinter.CTkTabview):
             if mode == 1 or mode == 2:
                 return ["to_address"]
             elif mode == 3:
-                return ["to_address", "amount"]
+                return ["to_address", "value"]
         elif tab == 1:
             if mode == 1 or mode == 2:
                 return ["from_address", "private_key"]
             elif mode == 3:
-                return ["from_address", "private_key", "amount"]
+                return ["from_address", "private_key", "value"]
         elif tab == 2:
             if mode == 1 or mode == 2:
                 return ["from_address", "private_key", "to_address"]
             elif mode == 3:
-                return ["from_address", "private_key", "to_address", "amount"]                  
+                return ["from_address", "private_key", "to_address", "value"]                  
                 
     def handle_set_columns_vars(self, mode):
         for i in range(len(self.tabs)):
@@ -191,7 +191,7 @@ class TokenMultiSender(customtkinter.CTk):
         # token types
         self.token_types = ["TOKEN", "NFT"]
         # modes
-        self.modes = {1: "All", 2: "Amount", 3: "Custom in file"} 
+        self.modes = {1: "All", 2: "Value", 3: "Custom in file"} 
 
     def load_network_data(self):
         with open("./data/networks.csv", "r") as f:
@@ -330,7 +330,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.transfer_button_frame = customtkinter.CTkFrame(tab)
         self.transfer_button_frame.place(x=432, y=160)
         
-        self.transfer_button = customtkinter.CTkButton(self.transfer_button_frame, text="Transfer", command=self.transfer_token)
+        self.transfer_button = customtkinter.CTkButton(self.transfer_button_frame, text="Transfer", command=self.transfer)
         self.transfer_button.pack()
     
     def build_footers(self):
@@ -376,11 +376,133 @@ class TokenMultiSender(customtkinter.CTk):
     def get_current_tab_index(self):
         return self.tab_view.index(self.tab_view.get())
 
+    def current_time(self):
+        return datetime.datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+
+    def load_transfer_data(self, current_tab, file):
+        transfer_data = []
+        with open(file, 'r') as f:
+            reader = csv.DictReader(f)
+            for i, line in enumerate(reader):
+                if i == 0:
+                    pass
+                else:
+                    transfer_data.append(line)
+
+        return transfer_data
+
+    def handle_get_value(self, mode, row):
+        # All
+        if mode == 1:
+            pass
+        # value
+        elif mode == 2:
+            return self.value_var.get()
+        # Custom
+        elif mode == 3:
+            return row['value']
+
+    def handle_set_transfer_data(self, transfer_data):
+        current_tab = self.get_current_tab_index()
+
+        tab_view = self.tab_view
+        mode = self.mode_var.get()
+        if current_tab == 1:
+            _address = tab_view.address_vars[current_tab].get().strip()
+            _private_key = tab_view.private_key_vars[current_tab].get().strip()
+            _wallet = wallet.Wallet(_address, _private_key, self.network)
+            _nonce = wallet.get_nonce()
+            for row in transfer_data:
+                row['from_address'] = tab_view.address_vars[current_tab].get().strip()
+                row['private_key'] = tab_view.private_key_vars[current_tab].get().strip()
+                row['wallet'] = _wallet
+                row['nonce'] = _nonce
+                row['value'] = self.handle_get_value(mode, row)
+                _nonce += 1
+        elif current_tab == 2:
+            for row in transfer_data:
+                _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
+                row['to_address'] = tab_view.address_vars[current_tab].get().strip()
+                row['wallet'] = _wallet
+                row['nonce'] = _wallet.get_nonce()
+                row['value'] = self.handle_get_value(mode, row)
+                
+        elif current_tab == 3:
+            for row in transfer_data:
+                _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
+                row['wallet'] = _wallet
+                row['nonce'] = _wallet.get_nonce()
+                row['value'] = self.handle_get_value(mode, row)
+
+        return transfer_data
+
     # endregion
 
     # region run
-    def transfer_token(self):
-        pass
+    def validate_before_transfer(self):
+        return True
+
+    def handle_error(self, error):
+        return error
+
+    def write_error_file(self, error_rows):
+        error_filepath = f"error_{self.current_time()}.csv"
+        with open(error_filepath, "w", newline="") as f:
+            writer = csv.writer(f)
+
+            writer.writerow('from_address', 'to_address', 'error')
+            writer.writerow(error_rows)
+            
+    
+    def transfer_token(self, transfer_data):
+        _error_count = 0
+        _error_rows = []
+
+        _token_address = self.token_address_var.get().strip()
+        mode = self.mode_var.get()
+        for row in transfer_data:
+            try:
+                _wallet = row['wallet']
+                _to_address = row['to_address']
+                _nonce = row['nonce']
+                _value = row['value']
+
+                if mode == 1:
+                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, mode="all")
+                else:
+                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, mode="custom")
+            except Exception as error:
+                _error_count += 1
+                _error_rows.append({
+                    'from_address': row['from_address'],
+                    'to_address': row['to_address'],
+                    'error': self.handle_error,
+                })
+
+        self.write_error_file(_error_rows)
+
+    def transfer(self):
+        is_valid = self.validate_before_transfer()
+        if not is_valid:
+            return
+        
+        self.handle_get_network()
+        self.network.init_w3()
+
+        if self.token_address_var.get():
+            self.network.load_contract(self.token_address_var.get().strip(), self.abi)
+
+        print(self.network.gas_price)
+
+        current_tab = self.get_current_tab_index()
+
+        file = self.tab_view.file_vars[current_tab].get()
+
+        transfer_data = self.load_transfer_data(current_tab, file)
+        transfer_data = self.handle_set_transfer_data(transfer_data)
+
+        self.transfer_token(transfer_data)
+        
     # endregion
 
 

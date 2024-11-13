@@ -11,6 +11,7 @@ class Network:
         # self.init_w3()
         self.gas = 0
         self.gas_price = 0
+        self.contract  = None
         print("Get network data success!")
 
     # Lấy dữ liệu của chain
@@ -27,9 +28,15 @@ class Network:
         self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
         self.get_gas_price()
 
+    # Load contract
+    def load_contract(self, contract_address, abi):
+        self.contract = self.w3.eth.contract(address=contract_address, abi=abi)
+
     # Lấy gas_price
     def get_gas_price(self):
         if self.gas_price == 0:
             self.gas_price = self.w3.eth.gas_price
         return self.gas_price
+
+    
 

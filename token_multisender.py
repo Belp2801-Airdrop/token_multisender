@@ -13,7 +13,7 @@ import customtkinter
 from customtkinter import filedialog    
 from tkinter import messagebox
 import os, time, datetime
-import csv
+import csv, json
 
 from baseclass import wallet
 from baseclass import network
@@ -186,12 +186,15 @@ class TokenMultiSender(customtkinter.CTk):
         # networks
         self.networks = {}
         self.load_network_data()
-        self.abi = [{"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"}]  
-
+        self.load_abi()
         # token types
         self.token_types = ["TOKEN", "NFT"]
         # modes
         self.modes = {1: "All", 2: "Value", 3: "Custom in file"} 
+
+    def load_abi(self):
+        with open('./data/abi.json', 'r') as f:
+            self.abi = json.load(f)
 
     def load_network_data(self):
         with open("./data/networks.csv", "r") as f:

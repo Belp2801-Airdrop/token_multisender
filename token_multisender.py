@@ -1,10 +1,10 @@
 """
 Name: Token multisender
 Description: Token multisender 
-    - 3 mode: 
-        1. 
-        2. 
-        3. 
+    - 3 modes: 
+        1. All: transfer all token in wallet
+        2. Amount: transfer a specific amount of token in wallet (same for all wallets)
+        3. Custom: transfer a specific amount of token in wallet (custom for each wallet in .csv file)
 Author: Belp2801
 Created: 09.11.2024
 """

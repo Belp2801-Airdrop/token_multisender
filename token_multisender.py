@@ -14,6 +14,7 @@ from customtkinter import filedialog
 from tkinter import messagebox
 import os, time, datetime
 import csv, json
+from tkinter import messagebox
 
 from baseclass import wallet
 from baseclass import network
@@ -287,8 +288,11 @@ class TokenMultiSender(customtkinter.CTk):
             if self.mode_var.get() == 2:
                 self.build_value_widgets()
             else:
-                self.value_label.grid_forget()
-                self.value_entry.grid_forget()
+                try:
+                    self.value_label.grid_forget()
+                    self.value_entry.grid_forget()
+                except:
+                    pass
             
         self.mode_label = customtkinter.CTkLabel(self.token_data_frame, width=108, anchor="w", text="Mode (*):")
         self.mode_combobox = customtkinter.CTkOptionMenu(
@@ -407,9 +411,11 @@ class TokenMultiSender(customtkinter.CTk):
 
         tab_view = self.tab_view
         mode = self.mode_var.get()
+        print(current_tab)
         if current_tab == 0:
             _address = tab_view.address_vars[current_tab].get().strip()
             _private_key = tab_view.private_key_vars[current_tab].get().strip()
+            print(_address)
             _wallet = wallet.Wallet(_address, _private_key, self.network)
             _nonce = _wallet.get_nonce()
             for row in transfer_data:
@@ -421,7 +427,7 @@ class TokenMultiSender(customtkinter.CTk):
                 _nonce += 1
         elif current_tab == 1:
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
+                _wallet = wallet.Wallet(row['from_address'], row['private_key'], self.network)
                 row['to_address'] = tab_view.address_vars[current_tab].get().strip()
                 row['wallet'] = _wallet
                 row['nonce'] = _wallet.get_nonce()
@@ -429,18 +435,47 @@ class TokenMultiSender(customtkinter.CTk):
                 
         elif current_tab == 2:
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
+                _wallet = wallet.Wallet(row['from_address'], row['private_key'], self.network)
                 row['wallet'] = _wallet
                 row['nonce'] = _wallet.get_nonce()
                 row['value'] = self.handle_get_value(mode, row)
 
-        print(transfer_data)
         return transfer_data
 
     # endregion
 
     # region run
     def validate_before_transfer(self):
+        current_tab = self.get_current_tab_index()
+        _mode= int(self.mode_var.get())
+        if _mode == 2:
+            if self.value_var.get() == "":
+                messagebox.showerror("Value Error", "Please enter value you want to transfer.")
+                return False
+            else:
+                try:
+                    float(self.value_var.get())
+                except:
+                    messagebox.showerror("Value Error", "Please enter the value as a real number.")
+                    return False
+                
+        if current_tab == 0:
+            if self.tab_view.address_vars[current_tab].get() == "":
+                messagebox.showerror("Address not found", "Please enter send address.")
+                return False
+            if self.tab_view.private_key_vars[current_tab].get() == "":
+                messagebox.showerror("Private key not found", "Please enter private key.")
+                return False
+
+        elif current_tab == 1:
+            if self.tab_view.address_vars[current_tab].get() == "":
+                messagebox.showerror("Address not found", "Please enter recipient address.")
+                return False
+
+        if self.tab_view.file_vars[current_tab].get() == "":
+            messagebox.showerror("File not found", "Please select file!")
+            return False
+        
         return True
 
     def handle_error(self, error):
@@ -461,7 +496,7 @@ class TokenMultiSender(customtkinter.CTk):
         _token_address = self.token_address_var.get().strip()
         mode = self.mode_var.get()
         for row in transfer_data:
-            #try:
+            try:
                 _wallet = row['wallet']
                 _to_address = row['to_address']
                 _nonce = row['nonce']
@@ -471,13 +506,13 @@ class TokenMultiSender(customtkinter.CTk):
                     _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="all")
                 else:
                     _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="custom")
-            # except Exception as error:
-            #     _error_count += 1
-            #     _error_rows.append({
-            #         'from_address': row['from_address'],
-            #         'to_address': row['to_address'],
-            #         'error': self.handle_error(error),
-            #     })
+            except Exception as error:
+                _error_count += 1
+                _error_rows.append({
+                    'from_address': row['from_address'],
+                    'to_address': row['to_address'],
+                    'error': self.handle_error(error),
+                })
         
         if len(_error_rows) > 0:
             self.write_error_file(_error_rows)
@@ -488,6 +523,7 @@ class TokenMultiSender(customtkinter.CTk):
             return
         
         self.handle_get_network()
+
         self.network.init_w3()
 
         if self.token_address_var.get():

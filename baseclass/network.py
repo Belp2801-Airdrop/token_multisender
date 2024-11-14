@@ -9,9 +9,10 @@ class Network:
         self.chain = chain
         self.get_data_of_chain(chain)
         # self.init_w3()
-        self.gas = 0
+        self.gas = 21000 * 5
         self.gas_price = 0
         self.contract  = None
+        self.w3 = None
         print("Get network data success!")
 
     # Lấy dữ liệu của chain
@@ -25,8 +26,10 @@ class Network:
 
     # Hàm khởi tạo network
     def init_w3(self):
-        self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
-        self.get_gas_price()
+        if self.w3 == None:
+            self.w3 = Web3(Web3.HTTPProvider(self.rpc_url))
+            self.get_gas_price()
+        
 
     # Load contract
     def load_contract(self, contract_address, abi):

@@ -19,7 +19,6 @@ class Wallet:
 
     # Lấy số transaction đã confirm
     def get_nonce(self):
-        print(self.network.w3.eth.get_transaction_count)
         self.nonce = self.network.w3.eth.get_transaction_count(self.address)
         return self.nonce
 
@@ -30,33 +29,30 @@ class Wallet:
         return str(value)
 
 
-    def build_transaction(self, recipient_address, nonce, value):
+    def build_transaction(self, recipient_address, value, nonce):
         # Build the transaction
         if self.network.contract == None:
             tx = {
+                "gas": self.network.gas,
                 "gasPrice": self.network.get_gas_price(),
                 "nonce": nonce,
                 "chainId": int(self.network.chain_id),
                 "to": recipient_address,
-                "value": int(self.network.w3.to_wei(str(value), "ether")),
+                "value": int(self.network.w3.to_wei(float(value), "ether")),
             }
         else:
             tx = self.network.contract.functions.transfer(
                 recipient_address, value
             ).build_transaction(
                 {
+                    "gas": self.network.gas,
                     "gasPrice": self.network.get_gas_price(),
                     "nonce": nonce,
                     "chainId": self.network.chain_id,
                 }
             )
 
-        print(self.network.chain_id)
         print(tx)
-        if self.network.gas == 0:
-            self.network.gas = int(self.network.w3.eth.estimate_gas(tx)) * 5
-            
-        tx.update({"gas": self.network.gas})
 
         return tx
 
@@ -65,14 +61,12 @@ class Wallet:
         if nonce == -1:
             nonce = self.get_nonce()
 
-        tx = self.build_transaction(recipient_address, value, nonce)
-
         if type == "custom":
             pass
         if type == "all":
             value = self.calculate_max_value(self.network.gas, self.network.gas_price)
-            tx.update({"value": value})
 
+        tx = self.build_transaction(recipient_address, value, nonce)
         #print(tx)
 
         # Sign the transaction
@@ -81,7 +75,7 @@ class Wallet:
         )
 
         # Send the transaction
-        tx_hash = self.network.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+        tx_hash = self.network.w3.eth.send_raw_transaction(signed_tx.raw_transaction)
 
         print(
             f"Send {value} {self.network.token} from {self.address} to {recipient_address}"

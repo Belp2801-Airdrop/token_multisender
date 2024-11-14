@@ -19,7 +19,7 @@ from tkinter import messagebox
 from baseclass import wallet
 from baseclass import network
 
-customtkinter.set_appearance_mode("dark")
+customtkinter.set_appearance_mode("system")
 customtkinter.set_default_color_theme("blue")
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))

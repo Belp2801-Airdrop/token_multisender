@@ -21,3 +21,7 @@ Tool have 3 modes:
 pip install -r requirements.txt
 ```
 
+## Important Note
+
+**Please test on testnet (Sepolia) before using this tool with mainnet (ETH. Base, Polygon,...)**
+

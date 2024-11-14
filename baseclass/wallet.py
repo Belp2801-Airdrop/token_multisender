@@ -19,6 +19,7 @@ class Wallet:
 
     # Lấy số transaction đã confirm
     def get_nonce(self):
+        print(self.network.w3.eth.get_transaction_count)
         self.nonce = self.network.w3.eth.get_transaction_count(self.address)
         return self.nonce
 
@@ -26,7 +27,7 @@ class Wallet:
     def calculate_max_value(self, gas, gasPrice):
         self.get_balance()
         value = self.balance - gas * gasPrice
-        return value
+        return str(value)
 
 
     def build_transaction(self, recipient_address, nonce, value):
@@ -35,9 +36,9 @@ class Wallet:
             tx = {
                 "gasPrice": self.network.get_gas_price(),
                 "nonce": nonce,
-                "chainId": self.network.chain_id,
+                "chainId": int(self.network.chain_id),
                 "to": recipient_address,
-                "value": int(self.network.w3.to_wei(value, "ether")),
+                "value": int(self.network.w3.to_wei(str(value), "ether")),
             }
         else:
             tx = self.network.contract.functions.transfer(
@@ -50,8 +51,10 @@ class Wallet:
                 }
             )
 
+        print(self.network.chain_id)
+        print(tx)
         if self.network.gas == 0:
-            self.network.gas = self.network.w3.eth.estimate_gas(tx) * 2
+            self.network.gas = int(self.network.w3.eth.estimate_gas(tx)) * 5
             
         tx.update({"gas": self.network.gas})
 

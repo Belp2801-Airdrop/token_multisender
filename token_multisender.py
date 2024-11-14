@@ -18,7 +18,7 @@ import csv, json
 from baseclass import wallet
 from baseclass import network
 
-customtkinter.set_appearance_mode("light")
+customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("blue")
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -387,10 +387,7 @@ class TokenMultiSender(customtkinter.CTk):
         with open(file, 'r') as f:
             reader = csv.DictReader(f)
             for i, line in enumerate(reader):
-                if i == 0:
-                    pass
-                else:
-                    transfer_data.append(line)
+                transfer_data.append(line)
 
         return transfer_data
 
@@ -410,11 +407,11 @@ class TokenMultiSender(customtkinter.CTk):
 
         tab_view = self.tab_view
         mode = self.mode_var.get()
-        if current_tab == 1:
+        if current_tab == 0:
             _address = tab_view.address_vars[current_tab].get().strip()
             _private_key = tab_view.private_key_vars[current_tab].get().strip()
             _wallet = wallet.Wallet(_address, _private_key, self.network)
-            _nonce = wallet.get_nonce()
+            _nonce = _wallet.get_nonce()
             for row in transfer_data:
                 row['from_address'] = tab_view.address_vars[current_tab].get().strip()
                 row['private_key'] = tab_view.private_key_vars[current_tab].get().strip()
@@ -422,7 +419,7 @@ class TokenMultiSender(customtkinter.CTk):
                 row['nonce'] = _nonce
                 row['value'] = self.handle_get_value(mode, row)
                 _nonce += 1
-        elif current_tab == 2:
+        elif current_tab == 1:
             for row in transfer_data:
                 _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
                 row['to_address'] = tab_view.address_vars[current_tab].get().strip()
@@ -430,13 +427,14 @@ class TokenMultiSender(customtkinter.CTk):
                 row['nonce'] = _wallet.get_nonce()
                 row['value'] = self.handle_get_value(mode, row)
                 
-        elif current_tab == 3:
+        elif current_tab == 2:
             for row in transfer_data:
                 _wallet = wallet.Wallet(row['from_wallet'], row['private_key'], self.network)
                 row['wallet'] = _wallet
                 row['nonce'] = _wallet.get_nonce()
                 row['value'] = self.handle_get_value(mode, row)
 
+        print(transfer_data)
         return transfer_data
 
     # endregion
@@ -451,10 +449,9 @@ class TokenMultiSender(customtkinter.CTk):
     def write_error_file(self, error_rows):
         error_filepath = f"error_{self.current_time()}.csv"
         with open(error_filepath, "w", newline="") as f:
-            writer = csv.writer(f)
-
-            writer.writerow('from_address', 'to_address', 'error')
-            writer.writerow(error_rows)
+            w = csv.DictWriter(f, error_rows[0].keys())
+            w.writeheader()
+            w.writerows(error_rows)
             
     
     def transfer_token(self, transfer_data):
@@ -464,25 +461,26 @@ class TokenMultiSender(customtkinter.CTk):
         _token_address = self.token_address_var.get().strip()
         mode = self.mode_var.get()
         for row in transfer_data:
-            try:
+            #try:
                 _wallet = row['wallet']
                 _to_address = row['to_address']
                 _nonce = row['nonce']
                 _value = row['value']
 
                 if mode == 1:
-                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, mode="all")
+                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="all")
                 else:
-                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, mode="custom")
-            except Exception as error:
-                _error_count += 1
-                _error_rows.append({
-                    'from_address': row['from_address'],
-                    'to_address': row['to_address'],
-                    'error': self.handle_error,
-                })
-
-        self.write_error_file(_error_rows)
+                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="custom")
+            # except Exception as error:
+            #     _error_count += 1
+            #     _error_rows.append({
+            #         'from_address': row['from_address'],
+            #         'to_address': row['to_address'],
+            #         'error': self.handle_error(error),
+            #     })
+        
+        if len(_error_rows) > 0:
+            self.write_error_file(_error_rows)
 
     def transfer(self):
         is_valid = self.validate_before_transfer()

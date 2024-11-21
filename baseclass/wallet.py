@@ -1,6 +1,8 @@
 from web3 import Web3
 from .network import Network
 
+from hexbytes import HexBytes
+
 # Class Wallet
 
 class Wallet:
@@ -37,7 +39,7 @@ class Wallet:
                 "gasPrice": self.network.get_gas_price(),
                 "nonce": nonce,
                 "chainId": int(self.network.chain_id),
-                "to": recipient_address,
+                "to": HexBytes(recipient_address),
                 "value": int(self.network.w3.to_wei(float(value), "ether")),
             }
         else:

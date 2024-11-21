@@ -26,7 +26,7 @@ class Wallet:
     def calculate_max_value(self, gas, gasPrice):
         self.get_balance()
         value = self.balance - gas * gasPrice
-        return str(value)
+        return self.network.w3.from_wei(value, "ether")
 
 
     def build_transaction(self, recipient_address, value, nonce):

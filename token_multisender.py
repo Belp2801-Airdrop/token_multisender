@@ -427,7 +427,7 @@ class TokenMultiSender(customtkinter.CTk):
                 _nonce += 1
         elif current_tab == 1:
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_address'], row['private_key'], self.network)
+                _wallet = wallet.Wallet(row['from_address'].get().strip(), row['private_key'].get().strip(), self.network)
                 row['to_address'] = tab_view.address_vars[current_tab].get().strip()
                 row['wallet'] = _wallet
                 row['nonce'] = _wallet.get_nonce()
@@ -435,7 +435,7 @@ class TokenMultiSender(customtkinter.CTk):
                 
         elif current_tab == 2:
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_address'], row['private_key'], self.network)
+                _wallet = wallet.Wallet(row['from_address'].get().strip(), row['private_key'].get().strip(), self.network)
                 row['wallet'] = _wallet
                 row['nonce'] = _wallet.get_nonce()
                 row['value'] = self.handle_get_value(mode, row)

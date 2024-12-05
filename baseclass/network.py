@@ -9,7 +9,7 @@ class Network:
         self.chain = chain
         self.get_data_of_chain(chain)
         # self.init_w3()
-        self.gas = 21000
+        self.gas = 105000
         self.gas_price = 0
         self.contract  = None
         self.w3 = None

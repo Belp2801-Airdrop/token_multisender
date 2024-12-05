@@ -487,6 +487,7 @@ class TokenMultiSender(customtkinter.CTk):
             w = csv.DictWriter(f, error_rows[0].keys())
             w.writeheader()
             w.writerows(error_rows)
+        return error_filepath
             
     
     def transfer_token(self, transfer_data):
@@ -515,7 +516,8 @@ class TokenMultiSender(customtkinter.CTk):
                 })
         
         if len(_error_rows) > 0:
-            self.write_error_file(_error_rows)
+            error_filepath = self.write_error_file(_error_rows)
+            os.startfile(error_filepath)
 
     def transfer(self):
         is_valid = self.validate_before_transfer()

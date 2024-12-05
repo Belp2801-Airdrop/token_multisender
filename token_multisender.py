@@ -208,7 +208,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.token_type_var = customtkinter.StringVar()
 
         self.mode_var = customtkinter.IntVar()
-        self.mode_var.set(1)
+        self.mode_var.set(2)
         self.value_var = customtkinter.DoubleVar()
 
         self.token_address_var = customtkinter.StringVar()

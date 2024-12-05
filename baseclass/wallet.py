@@ -1,5 +1,7 @@
+import web3
 from web3 import Web3
 from .network import Network
+
 
 from hexbytes import HexBytes
 
@@ -29,6 +31,9 @@ class Wallet:
         self.get_balance()
         value = self.balance - gas * gasPrice
         return self.network.w3.from_wei(value, "ether")
+    
+    def is_valid_evm_address(self, address):
+        return Web3.is_address(address)
 
 
     def build_transaction(self, recipient_address, value, nonce):
@@ -67,6 +72,10 @@ class Wallet:
             pass
         if type == "all":
             value = self.calculate_max_value(self.network.gas, self.network.gas_price)
+            
+        is_valid_address = self.is_valid_evm_address(recipient_address)
+        if not is_valid_address:
+            raise f"Invalid address {recipient_address}!"
 
         tx = self.build_transaction(recipient_address, value, nonce)
         #print(tx)

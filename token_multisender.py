@@ -208,7 +208,7 @@ class TokenMultiSender(customtkinter.CTk):
         self.token_type_var = customtkinter.StringVar()
 
         self.mode_var = customtkinter.IntVar()
-        self.mode_var.set(2)
+        self.mode_var.set(1)
         self.value_var = customtkinter.DoubleVar()
 
         self.token_address_var = customtkinter.StringVar()
@@ -365,6 +365,7 @@ class TokenMultiSender(customtkinter.CTk):
             _name = contract.functions.name().call()
             _symbol = contract.functions.symbol().call()
             self.unit_var.set(_symbol)
+            self.network.token = _symbol
             messagebox.showinfo("Success!", 
                                 "\n".join([
                                     f"Get token data success:", "",
@@ -398,7 +399,7 @@ class TokenMultiSender(customtkinter.CTk):
     def handle_get_value(self, mode, row):
         # All
         if mode == 1:
-            pass
+            return row['wallet'].get_balance()
         # value
         elif mode == 2:
             return self.value_var.get()
@@ -418,6 +419,7 @@ class TokenMultiSender(customtkinter.CTk):
             print(_address)
             _wallet = wallet.Wallet(_address, _private_key, self.network)
             _nonce = _wallet.get_nonce()
+            transfer_data = [x for x in transfer_data if x['to_address'] != '']
             for row in transfer_data:
                 row['from_address'] = tab_view.address_vars[current_tab].get().strip()
                 row['private_key'] = tab_view.private_key_vars[current_tab].get().strip()
@@ -426,6 +428,7 @@ class TokenMultiSender(customtkinter.CTk):
                 row['value'] = self.handle_get_value(mode, row)
                 _nonce += 1
         elif current_tab == 1:
+            transfer_data = [x for x in transfer_data if x['from_address'] != '']
             for row in transfer_data:
                 _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip(), self.network)
                 row['to_address'] = tab_view.address_vars[current_tab].get().strip()
@@ -434,6 +437,7 @@ class TokenMultiSender(customtkinter.CTk):
                 row['value'] = self.handle_get_value(mode, row)
                 
         elif current_tab == 2:
+            transfer_data = [x for x in transfer_data if x['from_address'] != '' and x['to_address'] != '']
             for row in transfer_data:
                 _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip(), self.network)
                 row['wallet'] = _wallet

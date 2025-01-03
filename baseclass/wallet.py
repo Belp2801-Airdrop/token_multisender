@@ -18,8 +18,8 @@ class Wallet:
         if self.network.contract == None:
             self.balance = self.network.w3.eth.get_balance(self.address)
         else:
-            self.balance = self.network.contract.functions.balanceOf.call(self.address)
-        return self.balance
+            self.balance = self.network.contract.functions.balanceOf(self.address).call()
+        return self.network.w3.from_wei(self.balance, 'ether')
 
     # Lấy số transaction đã confirm
     def get_nonce(self):
@@ -29,7 +29,10 @@ class Wallet:
     # Tính toán số token tối đa có thể chuyển
     def calculate_max_value(self, gas, gasPrice):
         self.get_balance()
-        value = self.balance - gas * gasPrice
+        if self.network.contract == None:
+            value = self.balance - gas * gasPrice
+        else:
+            value = self.balance
         return self.network.w3.from_wei(value, "ether")
     
     def is_valid_evm_address(self, address):
@@ -37,7 +40,8 @@ class Wallet:
 
 
     def build_transaction(self, recipient_address, value, nonce):
-        # Build the transaction
+        # Build the transactione)
+        value = int(self.network.w3.to_wei(float(value), "ether"))
         if self.network.contract == None:
             tx = {
                 "gas": self.network.gas,
@@ -45,9 +49,10 @@ class Wallet:
                 "nonce": nonce,
                 "chainId": int(self.network.chain_id),
                 "to": HexBytes(recipient_address),
-                "value": int(self.network.w3.to_wei(float(value), "ether")),
+                "value": value,
             }
         else:
+            print("Contract", value)
             tx = self.network.contract.functions.transfer(
                 recipient_address, value
             ).build_transaction(
@@ -55,7 +60,6 @@ class Wallet:
                     "gas": self.network.gas,
                     "gasPrice": self.network.get_gas_price(),
                     "nonce": nonce,
-                    "chainId": self.network.chain_id,
                 }
             )
 

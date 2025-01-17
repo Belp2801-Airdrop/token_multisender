@@ -2,5 +2,7 @@ key,name,token,rpc_url,scan_url,chain_id
 eth_main,Ethereum,eth,https://mainnet.infura.io/v3/,https://etherscan.io,1
 polygon,Polygon,matic,https://polygon-rpc.com/,https://polygonscan.com/,137
 taiko,Taiko,eth,https://rpc.mainnet.taiko.xyz,https://taikoscan.io,167000
-sepolia,Sepolia,eth,https://rpc.sepolia.org,'',11155111  
-base,Base,eth,https://mainnet.base.org,'',8453 
+sepolia,Sepolia,eth,https://rpc.sepolia.org,'',11155111
+base,Base,eth,https://mainnet.base.org,'',8453
+sonic,Sonic,s,https://rpc.soniclabs.com,'',146
+forma,Forma,tia,https://rpc.forma.art,'',984122

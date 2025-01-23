@@ -522,6 +522,8 @@ class TokenMultiSender(customtkinter.CTk):
         if len(_error_rows) > 0:
             error_filepath = self.write_error_file(_error_rows)
             os.startfile(error_filepath)
+        else:
+            messagebox.showinfo("Success", "Token transfer successfull.")
 
     def transfer(self):
         is_valid = self.validate_before_transfer()

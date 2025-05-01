@@ -15,6 +15,7 @@ from tkinter import messagebox
 import os, time, datetime
 import csv, json
 from tkinter import messagebox
+from web3 import Web3
 
 from baseclass import wallet
 from baseclass import network
@@ -25,7 +26,7 @@ customtkinter.set_default_color_theme("blue")
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
 class TabView(customtkinter.CTkTabview):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, history, **kwargs):
         super().__init__(master, **kwargs)
         self.master = master
 
@@ -36,7 +37,7 @@ class TabView(customtkinter.CTkTabview):
 
         self.init_data()
         self.init_vars()
-        self.init_ctk_vars()
+        self.init_ctk_vars(history)
         self.build_widgets()
 
     def init_data(self):
@@ -48,12 +49,22 @@ class TabView(customtkinter.CTkTabview):
         self.columns_vars = []
         self.file_vars = []
 
-    def init_ctk_vars(self):
+    def init_ctk_vars(self, history):
         for i in range(len(self.tabs)):
             self.address_vars.append(customtkinter.StringVar())
             self.private_key_vars.append(customtkinter.StringVar())
             self.columns_vars.append(customtkinter.StringVar())
             self.file_vars.append(customtkinter.StringVar())
+
+        try:
+            current_tab = int(history['tab'])
+            self.set(self.tabs[current_tab])
+            self.columns_vars[current_tab].set(history['columns'])
+            self.file_vars[current_tab].set(history['file'])
+            self.address_vars[current_tab].set(history['address'])
+            self.private_key_vars[current_tab].set(history['private_key'])
+        except Exception as e:
+            print(e)
 
     # region widgets
     def build_widgets(self):
@@ -111,14 +122,14 @@ class TabView(customtkinter.CTkTabview):
     def handle_get_csv_columns(self, tab, mode):    
         if tab == 0:
             if mode == 1 or mode == 2:
-                return ["to_address"]
+                return ["address"]
             elif mode == 3:
-                return ["to_address", "value"]
+                return ["address", "value"]
         elif tab == 1:
             if mode == 1 or mode == 2:
-                return ["from_address", "private_key"]
+                return ["address", "private_key"]
             elif mode == 3:
-                return ["from_address", "private_key", "value"]
+                return ["address", "private_key", "value"]
         elif tab == 2:
             if mode == 1 or mode == 2:
                 return ["from_address", "private_key", "to_address"]
@@ -171,21 +182,36 @@ class TokenMultiSender(customtkinter.CTk):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure((0, 1), weight=1)
 
+        self.load_history()
+        self.tab_view = TabView(master=self, history=self.history)
+
         self.init_constants()
         self.init_data()
         self.init_ctk_vars()
 
         self.build_widgets()
-        self.handle_get_network()
+        self.get_network()
+        self.get_contract()
 
-        self.tab_view.handle_set_columns_vars(self.mode_var.get())
     # region init
+    def load_history(self):
+        self.history_filepath = "./data/recent_params.txt"
+        self.history = {}
+        try:
+            #Load lịch sử
+            with open(self.history_filepath, 'r', encoding='utf-8') as f:
+                for line in f: 
+                    _data = line.strip().split("==")
+                    self.history[_data[0]] = _data[1]
+        except:
+            pass
+
     def init_constants(self):
         pass
 
     def init_data(self):
         # networks
-        self.networks = {}
+        self.network_dictionary = {}
         self.load_network_data()
         self.load_abi()
         # token types
@@ -201,19 +227,27 @@ class TokenMultiSender(customtkinter.CTk):
         with open("./data/networks.csv", "r") as f:
             reader = csv.DictReader(f)
             for line in reader:
-                self.networks[line["name"]] = line
+                self.network_dictionary[line["name"]] = line
 
     def init_ctk_vars(self):
-        self.network_var = customtkinter.StringVar(value=sorted(self.networks.keys())[0])
-        self.token_type_var = customtkinter.StringVar()
+        self.network_var = customtkinter.StringVar(value=sorted(self.network_dictionary.keys())[0])
+        self.token_type_var = customtkinter.StringVar(value=self.token_types[0])
 
-        self.mode_var = customtkinter.IntVar()
-        self.mode_var.set(1)
+        self.mode_var = customtkinter.IntVar(value=1)
         self.value_var = customtkinter.DoubleVar()
 
         self.token_address_var = customtkinter.StringVar()
         self.unit_var = customtkinter.StringVar()
-        self.columns_var = customtkinter.StringVar()
+
+        try:
+            self.network_var.set(self.history['network'])
+            self.token_type_var.set(self.history['token_type'])
+            self.token_address_var.set(self.history['token'])
+            self.mode_var.set(self.history['mode'])
+            self.value_var.set(self.history['value'])
+        except:
+            pass
+        self.tab_view.handle_set_columns_vars(self.mode_var.get())
 
     # endregion
 
@@ -236,19 +270,18 @@ class TokenMultiSender(customtkinter.CTk):
 
     def build_network_widgets(self):
         def on_change_network(choice):
-            self.handle_get_network()
+            self.get_network()
         # Network
         self.network_frame = customtkinter.CTkFrame(self.type_frame, corner_radius=5, bg_color="transparent", fg_color="transparent")
         self.network_label = customtkinter.CTkLabel(self.network_frame, width=108, anchor="w", text="Network:")
         self.network_combobox = customtkinter.CTkOptionMenu(
             self.network_frame, 
             variable=self.network_var, 
-            values=sorted(self.networks.keys()),
+            values=sorted(self.network_dictionary.keys()),
             fg_color=["#F9F9FA", "#343638"],
             text_color=["#000", "#fff"],
             command=on_change_network
         )
-        self.network_combobox.set(sorted(self.networks.keys())[0])
 
         self.network_label.grid(row=0, column=0, padx=(16, 5), pady=8, sticky="w")
         self.network_combobox.grid(row=0, column=1, padx=5, pady=8, sticky="w")
@@ -264,7 +297,6 @@ class TokenMultiSender(customtkinter.CTk):
             fg_color=["#F9F9FA", "#343638"],
             text_color=["#000", "#fff"]
         )
-        self.token_type_combobox.set(self.token_types[0])
 
         self.token_type_label.grid(row=0, column=2, padx=(16, 5), pady=8, sticky="e")
         self.token_type_combobox.grid(row=0, column=3, padx=(16, 18), pady=8, sticky="e")
@@ -302,7 +334,8 @@ class TokenMultiSender(customtkinter.CTk):
             fg_color=["#F9F9FA", "#343638"],
             text_color=["#000", "#fff"]
         )
-        self.mode_combobox.set(list(self.modes.values())[0])
+        self.mode_combobox.set(self.modes[self.mode_var.get()])
+        on_select_mode(self.modes[self.mode_var.get()])
         self.mode_label.grid(row=2, column=0, padx=(16, 5), pady=5, sticky="w")
         self.mode_combobox.grid(row=2, column=1, padx=5, pady=5, sticky="w")
 
@@ -321,13 +354,12 @@ class TokenMultiSender(customtkinter.CTk):
         # Token address
         self.token_address_label = customtkinter.CTkLabel(self.token_data_frame, width=108, anchor="w",  text="Token address:")
         self.token_address_entry = customtkinter.CTkEntry(self.token_data_frame, textvariable=self.token_address_var, width=360, border_width=0)
-        self.token_address_button = customtkinter.CTkButton(self.token_data_frame, text="Check", width=80, command=self.handle_check_token_address)
+        self.token_address_button = customtkinter.CTkButton(self.token_data_frame, text="Check", width=80, command=self.handle_get_contract)
         self.token_address_label.grid(row=1, column=0, padx=(16, 5), pady=(8, 5), sticky="w")
         self.token_address_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=(8, 5), sticky="w")
         self.token_address_button.grid(row=1, column=4, padx=5, pady=(8, 5), sticky="w")
         
     def build_tab_views(self):
-        self.tab_view = TabView(master=self)
         self.tab_view.pack(padx=5, pady=(0, 0), fill="both", expand=True)
 
         for tab in self.tab_view.tabs:
@@ -346,24 +378,30 @@ class TokenMultiSender(customtkinter.CTk):
     # endregion
     
     # region utils
-    def handle_get_network(self):
-        self.network = network.Network(self.networks, self.network_var.get())
+    def check_adress(self, address):
+        return Web3.is_address(address)
+    
+    def get_network(self):
+        self.network = network.Network(self.network_dictionary, self.network_var.get())
         self.unit_var.set(self.network.token)
         
     def handle_set_unit(self):
         self.unit_label.configure(text=f"Token: {self.unit_var.get()}")
 
-    def handle_check_token_address(self):
-        self.handle_get_network()
-        self.network.init_w3()
+    def get_contract(self):
+        self.network.load_contract(self.token_address_var.get(), self.abi)
+
+    def handle_get_contract(self):
         address = self.token_address_var.get().strip()
         if address == "":
             messagebox.showerror("Error!", "Enter token address and try again!")
             return
+        if not self.check_adress(address):
+            messagebox.showerror("Wrong address!", "Please enter correct EVM wallet!")
         try:
-            contract = self.network.w3.eth.contract(address=address, abi=self.abi)
-            _name = contract.functions.name().call()
-            _symbol = contract.functions.symbol().call()
+            self.get_contract()
+            _name = self.network.contract.functions.name().call()
+            _symbol = self.network.contract.functions.symbol().call()
             self.unit_var.set(_symbol)
             self.network.token = _symbol
             messagebox.showinfo("Success!", 
@@ -374,7 +412,6 @@ class TokenMultiSender(customtkinter.CTk):
                                     f" >> Symbol : {_symbol}"
                                 ]))
         except Exception as e:
-            print(e)
             if "401" in str(e):
                 messagebox.showerror("RPC Error!", "Check RPC url and try again!")
             else:
@@ -399,7 +436,7 @@ class TokenMultiSender(customtkinter.CTk):
     def handle_get_value(self, mode, row):
         # All
         if mode == 1:
-            return row['wallet'].get_balance()
+            return row['wallet'].get_balance(self.network)
         # value
         elif mode == 2:
             return self.value_var.get()
@@ -412,36 +449,36 @@ class TokenMultiSender(customtkinter.CTk):
 
         tab_view = self.tab_view
         mode = self.mode_var.get()
-        print(current_tab)
         if current_tab == 0:
             _address = tab_view.address_vars[current_tab].get().strip()
             _private_key = tab_view.private_key_vars[current_tab].get().strip()
-            print(_address)
-            _wallet = wallet.Wallet(_address, _private_key, self.network)
-            _nonce = _wallet.get_nonce()
-            transfer_data = [x for x in transfer_data if x['to_address'] != '']
+            _wallet = wallet.Wallet(_address, _private_key)
+            _nonce = _wallet.get_nonce(self.network)
+            transfer_data = [x for x in transfer_data if x['address'] != '']
             for row in transfer_data:
                 row['from_address'] = tab_view.address_vars[current_tab].get().strip()
+                row['to_address'] = row['address']
                 row['private_key'] = tab_view.private_key_vars[current_tab].get().strip()
                 row['wallet'] = _wallet
                 row['nonce'] = _nonce
                 row['value'] = self.handle_get_value(mode, row)
                 _nonce += 1
         elif current_tab == 1:
-            transfer_data = [x for x in transfer_data if x['from_address'] != '']
+            transfer_data = [x for x in transfer_data if x['address'] != '']
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip(), self.network)
+                row['from_address'] = row['address']
+                _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip())
                 row['to_address'] = tab_view.address_vars[current_tab].get().strip()
                 row['wallet'] = _wallet
-                row['nonce'] = _wallet.get_nonce()
+                row['nonce'] = _wallet.get_nonce(self.network)
                 row['value'] = self.handle_get_value(mode, row)
                 
         elif current_tab == 2:
             transfer_data = [x for x in transfer_data if x['from_address'] != '' and x['to_address'] != '']
             for row in transfer_data:
-                _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip(), self.network)
+                _wallet = wallet.Wallet(row['from_address'].strip(), row['private_key'].strip())
                 row['wallet'] = _wallet
-                row['nonce'] = _wallet.get_nonce()
+                row['nonce'] = _wallet.get_nonce(self.network)
                 row['value'] = self.handle_get_value(mode, row)
 
         return transfer_data
@@ -508,9 +545,9 @@ class TokenMultiSender(customtkinter.CTk):
                 _value = row['value']
 
                 if mode == 1:
-                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="all")
+                    _wallet.transfer_token(self.network, _to_address, _value, nonce=_nonce, type="all")
                 else:
-                    _wallet.transfer_token(_to_address, _value, nonce=_nonce, type="custom")
+                    _wallet.transfer_token(self.network, _to_address, _value, nonce=_nonce, type="custom")
             except Exception as error:
                 _error_count += 1
                 _error_rows.append({
@@ -525,19 +562,36 @@ class TokenMultiSender(customtkinter.CTk):
         else:
             messagebox.showinfo("Success", "Token transfer successfull.")
 
+    def save_history(self):
+        
+        with open(self.history_filepath, 'w', encoding='utf-8') as f:
+            f.write(f'network=={self.network_var.get()}\n')
+            f.write(f"token_type=={self.token_type_var.get()}\n")
+            f.write(f'token=={self.token_address_var.get()}\n')
+            f.write(f"mode=={self.mode_var.get()}\n")
+            f.write(f"value=={self.value_var.get()}\n")
+
+            current_tab = self.get_current_tab_index()
+            f.write(f"tab=={current_tab}\n")
+            f.write(f"columns=={self.tab_view.columns_vars[current_tab].get()}\n")
+            f.write(f"file=={self.tab_view.file_vars[current_tab].get()}\n")
+            f.write(f"address=={self.tab_view.address_vars[current_tab].get()}\n")
+            f.write(f"private_key=={self.tab_view.private_key_vars[current_tab].get()}\n")
+
+
     def transfer(self):
+        self.save_history()
+
         is_valid = self.validate_before_transfer()
         if not is_valid:
             return
-        
-        self.handle_get_network()
 
-        self.network.init_w3()
+        self.network.get_gas_price()
 
         if self.token_address_var.get():
             self.network.load_contract(self.token_address_var.get().strip(), self.abi)
 
-        print(self.network.gas_price)
+        print(f"GasPrice: {self.network.gas_price}")
 
         current_tab = self.get_current_tab_index()
 

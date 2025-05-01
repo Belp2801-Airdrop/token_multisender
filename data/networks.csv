@@ -1,6 +1,6 @@
-key,name,token,rpc_url,scan_url,chain_id
-eth_main,Ethereum,eth,https://mainnet.infura.io/v3/,https://etherscan.io,1
-polygon,Polygon,matic,https://polygon-rpc.com/,https://polygonscan.com/,137
-taiko,Taiko,eth,https://rpc.mainnet.taiko.xyz,https://taikoscan.io,167000
-sepolia,Sepolia,eth,https://rpc.sepolia.org,'',11155111  
-base,Base,eth,https://mainnet.base.org,'',8453 
+key,name,token,rpc_url,scan_url,chain_id,gas_multiple
+eth_main,Ethereum,eth,https://mainnet.infura.io/v3/,https://etherscan.io,1,1
+polygon,Polygon,matic,https://polygon-rpc.com/,https://polygonscan.com/,137,1
+taiko,Taiko,eth,https://rpc.mainnet.taiko.xyz,https://taikoscan.io,167000,1
+sepolia,Sepolia,eth,https://rpc.sepolia.org,'',11155111,1
+base,Base,eth,https://mainnet.base.org,'',8453,10

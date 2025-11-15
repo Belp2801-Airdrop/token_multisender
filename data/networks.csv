@@ -4,3 +4,4 @@ polygon,Polygon,matic,https://polygon-rpc.com/,https://polygonscan.com/,137,1
 taiko,Taiko,eth,https://rpc.mainnet.taiko.xyz,https://taikoscan.io,167000,1
 sepolia,Sepolia,eth,https://rpc.sepolia.org,'',11155111,1
 base,Base,eth,https://mainnet.base.org,'',8453,10
+abstract,Abstract,eth,https://abstract.drpc.org,'',2741,1

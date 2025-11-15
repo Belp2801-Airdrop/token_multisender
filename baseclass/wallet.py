@@ -9,7 +9,7 @@ from hexbytes import HexBytes
 
 class Wallet:
     def __init__(self, address, private_key):
-        self.address = address
+        self.address = Web3.to_checksum_address(address)
         self.private_key = private_key
 
     # Lấy số dư của ví
